@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MineWatch v3 — Illegal Mining Detection System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0e14;--bg2:#111520;--bg3:#171c28;
+  --card:#141928;--card2:#1a2035;
+  --border:#1e2840;--border2:#252f4a;
+  --text:#e8eaf0;--text2:#7a85a0;--text3:#4a556a;
+  --green:#00e5a0;--green2:#00b87d;--green-bg:rgba(0,229,160,.08);
+  --red:#ff4d6d;--red-bg:rgba(255,77,109,.08);
+  --amber:#ffb340;--amber-bg:rgba(255,179,64,.08);
+  --blue:#4d9eff;--blue-bg:rgba(77,158,255,.08);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,.08);
+}
+html,body{height:100%;font-size:14px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text)}
+body{display:flex;flex-direction:column;overflow:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* NAV */
+.topnav{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,#00e5a0,#00b87d);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.brand-icon svg{width:17px;height:17px;stroke:#000;fill:none;stroke-width:2.2}
+.brand-name{font-weight:800;font-size:15px;letter-spacing:-.02em}
+.brand-name span{color:var(--green)}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{background:transparent;border:none;color:var(--text2);font-size:11.5px;font-family:inherit;font-weight:500;padding:6px 10px;border-radius:6px;cursor:pointer;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.nav-tab:hover{background:var(--bg3);color:var(--text)}
+.nav-tab.active{background:var(--bg3);color:var(--green)}
+.nav-tab svg{width:11px;height:11px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2}
+.nav-right{display:flex;align-items:center;gap:8px}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--green-bg);border:1px solid rgba(0,229,160,.2);padding:5px 12px;border-radius:20px;font-size:11px;color:var(--green);font-weight:600}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.nav-btn{background:var(--green);color:#000;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.nav-btn:hover{background:var(--green2)}
+
+/* LAYOUT */
+.main{flex:1;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:295px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.slbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.sbox{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 10px;margin-bottom:8px}
+.sbox svg{width:12px;height:12px;fill:none;stroke:var(--text3);stroke-width:2.5;flex-shrink:0}
+.sbox input{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:inherit;flex:1}
+.sbox input::placeholder{color:var(--text3)}
+.frow{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.fb{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:10.5px;font-family:inherit;padding:4px 9px;border-radius:5px;cursor:pointer;transition:.15s}
+.fb:hover,.fb.on{background:var(--green-bg);border-color:rgba(0,229,160,.3);color:var(--green)}
+.ssl{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:4px 8px;border-radius:5px;font-family:inherit;cursor:pointer;outline:none}
+.alist{flex:1;overflow-y:auto;padding:8px}
+
+/* ALERT CARDS */
+.ai{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:6px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.ai:hover{border-color:var(--border2);background:var(--card2)}
+.ai.on{border-color:var(--green);background:var(--card2)}
+.ai.on::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green)}
+.ai-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.bdg{font-size:9.5px;font-weight:700;padding:3px 6px;border-radius:4px}
+.bh{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,77,109,.2)}
+.bm{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,179,64,.2)}
+.bl{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,.2)}
+.ai-sc{font-size:14px;font-weight:700;font-family:monospace}
+.ai-nm{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3}
+.ai-mt{font-size:10.5px;color:var(--text2);display:flex;gap:8px;flex-wrap:wrap}
+.ai-br{height:3px;background:var(--border);border-radius:2px;margin-top:7px}
+.ai-bf{height:3px;border-radius:2px}
+.ai-st{display:flex;align-items:center;gap:4px;margin-top:7px;flex-wrap:wrap}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.ntag{background:var(--blue-bg);border:1px solid rgba(77,158,255,.2);color:var(--blue);font-size:8.5px;font-weight:700;padding:2px 5px;border-radius:3px}
+
+/* MAP AREA */
+.map-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.map-toolbar{padding:9px 14px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:8px}
+.ltogs{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.ltl{font-size:10px;color:var(--text3);margin-right:2px}
+.lbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:10.5px;font-family:inherit;padding:4px 9px;border-radius:5px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px}
+.lbtn.on{background:var(--green-bg);border-color:rgba(0,229,160,.3);color:var(--green)}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.msts{display:flex;gap:12px}
+.ms{text-align:center}.msn{font-size:15px;font-weight:700;font-family:monospace}.msl{font-size:9.5px;color:var(--text3)}
+.map-view-tabs{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.mvt{background:var(--bg3);border:none;color:var(--text2);font-size:11px;padding:5px 10px;cursor:pointer;font-family:inherit;transition:.15s;border-right:1px solid var(--border)}
+.mvt:last-child{border-right:none}
+.mvt.on{background:var(--green-bg);color:var(--green)}
+.map-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+#mapCanvas{display:block;width:100%;height:100%}
+.map-tooltip{position:absolute;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:11px 14px;font-size:12px;pointer-events:none;z-index:20;min-width:180px;display:none}
+.map-tooltip.show{display:block}
+.mtt-name{font-weight:700;font-size:12.5px;margin-bottom:5px}
+.mtt-row{color:var(--text2);margin-bottom:2px;font-size:11.5px}
+.mtt-row b{color:var(--text)}
+.ba-wrap{position:absolute;inset:0;display:none;overflow:hidden}
+.ba-wrap.show{display:block}
+.ba-before,.ba-after{position:absolute;inset:0}
+.ba-before canvas,.ba-after canvas{width:100%;height:100%;display:block}
+.ba-divider{position:absolute;top:0;bottom:0;width:3px;background:#fff;cursor:ew-resize;z-index:10;transform:translateX(-50%)}
+.ba-divider::before{content:'◀ ▶';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#000;font-size:11px;font-weight:700;padding:6px 10px;border-radius:20px;white-space:nowrap}
+.ba-label{position:absolute;top:12px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:5px}
+.ba-label.before{left:12px;background:rgba(0,0,0,.6);color:#4ade80}
+.ba-label.after{right:12px;background:rgba(0,0,0,.6);color:#ff4d6d}
+
+/* DETAILS PANEL */
+.dp{width:350px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .25s}
+.dp.closed{width:0;border:none;overflow:hidden}
+.dp-hd{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dp-title{font-size:12.5px;font-weight:700}
+.dp-x{background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:17px;line-height:1;padding:2px 6px;border-radius:4px;font-family:inherit}
+.dp-x:hover{background:var(--bg3);color:var(--text)}
+.dp-body{flex:1;overflow-y:auto;padding:12px 14px}
+.dp-sec{margin-bottom:16px}
+.dp-lbl{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.coord-box{font-size:11.5px;color:var(--green);background:var(--green-bg);padding:8px 10px;border-radius:6px;border:1px solid rgba(0,229,160,.15);font-family:monospace}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dp-f{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+.dp-f label{font-size:9.5px;color:var(--text3);display:block;margin-bottom:3px}
+.dp-f span{font-size:12.5px;font-weight:700}
+.score-ring{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px}
+.rw{position:relative;width:60px;height:60px;flex-shrink:0}
+.rw svg{transform:rotate(-90deg)}
+.rv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:monospace}
+.ri h4{font-size:12.5px;font-weight:700;margin-bottom:3px}
+.ri p{font-size:11px;color:var(--text2);line-height:1.5}
+.factor-list{display:flex;flex-direction:column;gap:5px}
+.factor-row{display:flex;align-items:center;gap:7px}
+.factor-name{font-size:10px;color:var(--text2);width:120px;flex-shrink:0}
+.factor-bar-bg{flex:1;height:5px;background:var(--border);border-radius:3px}
+.factor-bar-fill{height:5px;border-radius:3px;transition:width .8s ease}
+.factor-val{font-size:10px;font-family:monospace;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.exp-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:12px;color:var(--text2);line-height:1.7}
+.exp-box b{color:var(--text);font-weight:600}
+.wf-btns{display:flex;flex-direction:column;gap:5px}
+.wf{padding:8px 13px;border-radius:7px;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.15s;display:flex;align-items:center;gap:7px}
+.wf svg{width:13px;height:13px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.5}
+.wf-v{background:var(--green-bg);border-color:rgba(0,229,160,.25);color:var(--green)}
+.wf-i{background:var(--blue-bg);border-color:rgba(77,158,255,.25);color:var(--blue)}
+.wf-f{background:var(--amber-bg);border-color:rgba(255,179,64,.25);color:var(--amber)}
+.wf-r{background:var(--red-bg);border-color:rgba(255,77,109,.25);color:var(--red)}
+.tl{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.tl-sc{height:80px;background:#040810;position:relative;overflow:hidden}
+.tlz{position:absolute;background:rgba(255,77,109,.45);border:1.5px solid #ff4d6d;border-radius:3px;transition:all .5s ease}
+.tl-ct{padding:7px 10px;display:flex;align-items:center;gap:7px}
+.tl-pb{background:var(--green);border:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.tl-pb svg{width:8px;height:8px;fill:#000;stroke:none}
+.tl-sl{flex:1;accent-color:var(--green);cursor:pointer}
+.tl-dl{font-size:10px;color:var(--text2);white-space:nowrap;font-family:monospace}
+.alog-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.alog-item:last-child{border:none}
+.alog-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.alog-text{font-size:11px;color:var(--text2);line-height:1.5}
+.alog-text b{color:var(--text);font-weight:600}
+.alog-time{font-size:10px;color:var(--text3);font-family:monospace;margin-top:1px}
+
+/* PAGE VIEWS */
+.pv{display:none;flex:1;overflow-y:auto;padding:18px;flex-direction:column;gap:14px}
+.pv.on{display:flex}
+
+/* COMMON CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.card-title{font-size:13.5px;font-weight:700}
+.card-body{padding:18px}
+
+/* ═══════════════════════════════════════
+   ECONOMIC DAMAGE CALCULATOR
+═══════════════════════════════════════ */
+.eco-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+.eco-card{border-radius:12px;padding:16px}
+.eco-card.total{background:var(--red-bg);border:1px solid rgba(255,77,109,.2)}
+.eco-card.timber{background:var(--green-bg);border:1px solid rgba(0,229,160,.2)}
+.eco-card.ore{background:var(--amber-bg);border:1px solid rgba(255,179,64,.2)}
+.eco-card.carbon{background:var(--purple-bg);border:1px solid rgba(167,139,250,.2)}
+.eco-card.water{background:var(--blue-bg);border:1px solid rgba(77,158,255,.2)}
+.eco-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;opacity:.8}
+.eco-val{font-size:22px;font-weight:800;font-family:monospace;margin-bottom:3px}
+.eco-sub{font-size:11px;opacity:.7;line-height:1.4}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.calc-input-group{display:flex;flex-direction:column;gap:5px}
+.calc-label{font-size:11px;color:var(--text2);font-weight:600}
+.calc-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;padding:8px 12px;border-radius:7px;font-family:monospace;outline:none;width:100%}
+.calc-input:focus{border-color:rgba(0,229,160,.4)}
+.calc-btn{background:var(--green);color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;width:100%}
+.calc-btn:hover{background:var(--green2)}
+.breakdown-table{width:100%;border-collapse:collapse}
+.breakdown-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.breakdown-table td{padding:10px 12px;font-size:12.5px;border-bottom:1px solid var(--border)}
+.breakdown-table tr:last-child td{border:none;font-weight:700}
+.breakdown-table .mono{font-family:monospace;font-weight:700}
+.dmg-bar-bg{height:6px;background:var(--border);border-radius:3px;margin-top:4px}
+.dmg-bar-f{height:6px;border-radius:3px}
+.zone-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.zone-pill{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;transition:.15s;font-family:inherit}
+.zone-pill:hover,.zone-pill.on{background:var(--green-bg);border-color:rgba(0,229,160,.3);color:var(--green)}
+
+/* ═══════════════════════════════════════
+   LEGAL EVIDENCE PACKAGE
+═══════════════════════════════════════ */
+.evidence-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.ev-step{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:14px;align-items:flex-start}
+.ev-step.complete{border-color:rgba(0,229,160,.3);background:var(--green-bg)}
+.ev-step.pending{border-color:rgba(255,179,64,.3);background:var(--amber-bg)}
+.ev-step.missing{border-color:rgba(255,77,109,.2)}
+.ev-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:monospace}
+.ev-num.complete{background:var(--green);color:#000}
+.ev-num.pending{background:var(--amber);color:#000}
+.ev-num.missing{background:var(--border2);color:var(--text3)}
+.ev-content h4{font-size:13px;font-weight:700;margin-bottom:3px}
+.ev-content p{font-size:11.5px;color:var(--text2);line-height:1.55}
+.ev-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-top:5px}
+.ev-tag.complete{background:var(--green-bg);color:var(--green)}
+.ev-tag.pending{background:var(--amber-bg);color:var(--amber)}
+.ev-tag.missing{background:var(--red-bg);color:var(--red)}
+.legal-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.act-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px}
+.act-name{font-size:11.5px;font-weight:700;margin-bottom:3px;color:var(--text)}
+.act-section{font-size:10.5px;color:var(--amber);font-family:monospace;margin-bottom:3px}
+.act-desc{font-size:10.5px;color:var(--text2);line-height:1.5}
+.chain-of-custody{display:flex;flex-direction:column;gap:0}
+.coc-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center}
+.coc-row:last-child{border:none}
+.coc-time{font-family:monospace;font-size:10.5px;color:var(--text3);width:130px;flex-shrink:0}
+.coc-event{font-size:12px;color:var(--text2)}
+.coc-event b{color:var(--text);font-weight:600}
+.coc-hash{font-family:monospace;font-size:9px;color:var(--text3);margin-top:2px}
+.evidence-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ev-btn{padding:9px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;border:1px solid transparent;transition:.15s}
+.ev-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.ev-btn.primary{background:var(--green);color:#000;border-color:var(--green)}
+.ev-btn.primary:hover{background:var(--green2)}
+.ev-btn.secondary{background:var(--bg3);border-color:var(--border2);color:var(--text2)}
+.ev-btn.secondary:hover{color:var(--text)}
+.admissibility-score{display:flex;align-items:center;gap:14px;background:var(--green-bg);border:1px solid rgba(0,229,160,.2);border-radius:10px;padding:14px;margin-bottom:16px}
+.adm-ring{position:relative;width:64px;height:64px;flex-shrink:0}
+.adm-ring svg{transform:rotate(-90deg)}
+.adm-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-family:monospace;color:var(--green)}
+.adm-info h4{font-size:13px;font-weight:700;color:var(--green);margin-bottom:3px}
+.adm-info p{font-size:11.5px;color:var(--text2);line-height:1.5}
+
+/* ═══════════════════════════════════════
+   ENFORCEMENT GAP ANALYSIS
+═══════════════════════════════════════ */
+.gap-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:16px}
+.gap-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.gap-stat-val{font-size:24px;font-weight:700;font-family:monospace;margin-bottom:3px}
+.gap-stat-lbl{font-size:11px;color:var(--text2);line-height:1.4}
+.district-gap-table{width:100%;border-collapse:collapse}
+.district-gap-table th{padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.district-gap-table td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border)}
+.district-gap-table tr:last-child td{border:none}
+.district-gap-table tr:hover td{background:var(--card2)}
+.gap-bar-cell{width:120px}
+.gap-bar-bg{height:6px;background:var(--border);border-radius:3px}
+.gap-bar-f{height:6px;border-radius:3px}
+.gap-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
+.gb-critical{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,77,109,.2)}
+.gb-high{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,179,64,.2)}
+.gb-medium{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(167,139,250,.2)}
+.gb-low{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,229,160,.2)}
+.gap-chart-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.gap-recommendation{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px}
+.gap-rec-title{font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.gap-rec-title svg{width:14px;height:14px;stroke:var(--amber);fill:none;stroke-width:2}
+.rec-list{display:flex;flex-direction:column;gap:7px}
+.rec-item{display:flex;gap:10px;align-items:flex-start;padding:8px;background:var(--card);border-radius:7px;border:1px solid var(--border)}
+.rec-priority{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.rec-text{font-size:11.5px;color:var(--text2);line-height:1.5}
+.rec-text b{color:var(--text);font-weight:600}
+.radar-canvas{display:block;margin:0 auto}
+
+/* TABLE */
+.fbar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:110px}
+.flbl{font-size:10px;color:var(--text3)}
+.fin,.fsel{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;border-radius:6px;font-family:inherit;outline:none}
+.fap{background:var(--green);color:#000;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;align-self:flex-end}
+.twrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.thd{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ttl{font-size:13.5px;font-weight:700}
+.tacts{display:flex;gap:6px;flex-wrap:wrap}
+.tbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:4px}
+.tbtn.on{background:var(--green-bg);border-color:rgba(0,229,160,.3);color:var(--green)}
+.tbtn svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+table{width:100%;border-collapse:collapse}
+thead tr{border-bottom:1px solid var(--border)}
+thead th{padding:9px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.05em;white-space:nowrap;cursor:pointer;user-select:none}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:.12s}
+tbody tr:last-child{border:none}
+tbody tr:hover{background:var(--card2)}
+tbody td{padding:9px 13px;font-size:12px;white-space:nowrap}
+.tact-btn{background:var(--green-bg);border:1px solid rgba(0,229,160,.2);color:var(--green);font-size:10.5px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700}
+
+/* METRICS */
+.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:11px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.mc-val{font-size:27px;font-weight:700;margin-bottom:3px;font-family:monospace}
+.mc-lbl{font-size:11px;color:var(--text2);margin-bottom:11px;line-height:1.4}
+.mc-bar{height:5px;background:var(--border);border-radius:3px}
+.mc-f{height:5px;border-radius:3px}
+.crows{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.cc-lbl{font-size:12px;font-weight:700;margin-bottom:12px}
+
+/* REPORT */
+.rwrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:820px}
+.rtop{background:var(--bg3);padding:22px;border-bottom:1px solid var(--border)}
+.rtr{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.rid{font-size:10px;color:var(--green);margin-bottom:6px;letter-spacing:.05em;font-family:monospace}
+.rhl{font-size:19px;font-weight:800;margin-bottom:5px;line-height:1.2}
+.rsub{font-size:12px;color:var(--text2)}
+.rurg{display:flex;align-items:center;gap:7px;background:var(--red-bg);border:1px solid rgba(255,77,109,.25);padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700;color:var(--red)}
+.rurg svg{width:13px;height:13px;stroke:var(--red);fill:none;stroke-width:2.5;flex-shrink:0}
+.rgrid{padding:18px 22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;border-bottom:1px solid var(--border)}
+.rf{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px}
+.rf label{font-size:9.5px;color:var(--text3);display:block;margin-bottom:3px}
+.rf span{font-size:12px;font-weight:700}
+.rbody{padding:18px 22px;border-bottom:1px solid var(--border)}
+.rbody p{font-size:12.5px;color:var(--text2);line-height:1.8}
+.rbody b{color:var(--text);font-weight:600}
+.rbody p+p{margin-top:10px}
+.rbar{padding:13px 22px;display:flex;gap:8px;flex-wrap:wrap;background:var(--bg3)}
+.rb{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:6px;border:1px solid transparent}
+.rb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+.rb-p{background:var(--green);color:#000;border-color:var(--green)}
+.rb-p:hover{background:var(--green2)}
+.rb-s{background:var(--bg);border-color:var(--border2);color:var(--text2)}
+.rb-s:hover{color:var(--text)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid rgba(0,229,160,.4);border-radius:10px;padding:10px 16px;font-size:12.5px;color:var(--green);font-weight:700;z-index:9999;transform:translateY(60px);opacity:0;transition:.3s;pointer-events:none;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:5000;align-items:center;justify-content:center;display:none}
+.moverlay.open{display:flex}
+.mdl{background:var(--card2);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:480px;width:90%;position:relative}
+.mdl h3{font-size:16px;font-weight:800;margin-bottom:7px}
+.mdl p{font-size:12.5px;color:var(--text2);line-height:1.65;margin-bottom:18px}
+.mdl-btns{display:flex;gap:9px;justify-content:flex-end}
+.mdl-x{position:absolute;top:13px;right:15px;background:transparent;border:none;color:var(--text2);font-size:19px;cursor:pointer;font-family:inherit}
+
+@media(max-width:1100px){.dp{display:none}}
+@media(max-width:800px){.sidebar{width:250px}}
+@media(max-width:640px){.crows{grid-template-columns:1fr}.calc-grid{grid-template-columns:1fr}.legal-acts{grid-template-columns:1fr}.gap-chart-wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="brand">
+      <div class="brand-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg></div>
+      <div class="brand-name">Mine<span>Watch</span></div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="sv('map',this)"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Alert Map</button>
+      <button class="nav-tab" onclick="sv('table',this)"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>Alerts Table</button>
+      <button class="nav-tab" onclick="sv('damage',this)"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Economic Damage</button>
+      <button class="nav-tab" onclick="sv('legal',this)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Legal Evidence</button>
+      <button class="nav-tab" onclick="sv('enforcement',this)"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Enforcement Gap</button>
+      <button class="nav-tab" onclick="sv('report',this)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Report</button>
+      <button class="nav-tab" onclick="sv('metrics',this)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Metrics</button>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="status-pill"><span class="live-dot"></span>Live — 14 Apr 2026</div>
+    <button class="nav-btn" onclick="genReport()">+ Generate Report</button>
+  </div>
+</nav>
+
+<!-- MAP VIEW -->
+<div class="main" id="vm">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="slbl">Detected Alerts</div>
+      <div class="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search zone, region..." id="sq" oninput="ral()"></div>
+      <div class="frow">
+        <button class="fb on" onclick="sfr('all',this)">All (7)</button>
+        <button class="fb" onclick="sfr('HIGH',this)">High</button>
+        <button class="fb" onclick="sfr('MEDIUM',this)">Med</button>
+        <button class="fb" onclick="sfr('LOW',this)">Low</button>
+        <button class="fb" id="pb" onclick="tpo(this)">Protected</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--text3)">Sort:</span>
+        <select class="ssl" onchange="ral()"><option value="score">Score ↓</option><option value="date">Newest</option><option value="area">Area ↓</option></select>
+      </div>
+    </div>
+    <div class="alist" id="alist"></div>
+  </div>
+  <div class="map-area">
+    <div class="map-toolbar">
+      <div class="ltogs">
+        <span class="ltl">LAYERS</span>
+        <button class="lbtn on" onclick="tlayer('alerts',this)"><span class="ldot" style="background:#ff4d6d"></span>Alerts</button>
+        <button class="lbtn" onclick="tlayer('ndvi',this)"><span class="ldot" style="background:#4ade80"></span>NDVI</button>
+        <button class="lbtn" onclick="tlayer('bsi',this)"><span class="ldot" style="background:#ffb340"></span>Bare soil</button>
+        <button class="lbtn on" onclick="tlayer('prot',this)"><span class="ldot" style="background:#4d9eff"></span>Protected</button>
+        <button class="lbtn" onclick="tlayer('damage',this)"><span class="ldot" style="background:#a78bfa"></span>Damage zones</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="map-view-tabs">
+          <button class="mvt on" onclick="setMV('standard',this)">Standard</button>
+          <button class="mvt" onclick="setMV('satellite',this)">Satellite</button>
+          <button class="mvt" onclick="setMV('terrain',this)">Terrain</button>
+          <button class="mvt" onclick="setMV('beforeafter',this)">Before/After</button>
+        </div>
+        <div class="msts">
+          <div class="ms"><div class="msn" style="color:#ff4d6d">3</div><div class="msl">High</div></div>
+          <div class="ms"><div class="msn" style="color:#ffb340">2</div><div class="msl">Med</div></div>
+          <div class="ms"><div class="msn" style="color:#00e5a0">2</div><div class="msl">Low</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="map-wrap" id="mapWrap">
+      <canvas id="mapCanvas" style="display:block;width:100%;height:100%"></canvas>
+      <div class="map-tooltip" id="mtt"></div>
+      <div class="ba-wrap" id="baWrap">
+        <div class="ba-before" id="baBefore"><canvas id="baBC"></canvas></div>
+        <div class="ba-after" id="baAfter" style="clip-path:inset(0 50% 0 0)"><canvas id="baAC"></canvas></div>
+        <div class="ba-divider" id="baDivider" style="left:50%"></div>
+        <div class="ba-label before">T1 — Before (09 Apr)</div>
+        <div class="ba-label after">T2 — After (14 Apr)</div>
+      </div>
+    </div>
+  </div>
+  <div class="dp closed" id="dp">
+    <div class="dp-hd"><div class="dp-title" id="dpt">Alert details</div><button class="dp-x" onclick="cdp()">✕</button></div>
+    <div class="dp-body" id="dpb"></div>
+  </div>
+</div>
+
+<!-- TABLE VIEW -->
+<div class="pv" id="vtable">
+  <div class="fbar">
+    <div class="fg"><span class="flbl">DATE FROM</span><input type="date" class="fin" value="2026-03-01"></div>
+    <div class="fg"><span class="flbl">DATE TO</span><input type="date" class="fin" value="2026-04-14"></div>
+    <div class="fg" style="min-width:160px">
+      <span class="flbl">MIN PROB — <span id="pv2" style="color:var(--green)">0.00</span></span>
+      <input type="range" min="0" max="1" step="0.05" value="0" class="fin" style="padding:8px 0;accent-color:#00e5a0" oninput="document.getElementById('pv2').textContent=parseFloat(this.value).toFixed(2)" id="pr">
+    </div>
+    <div class="fg"><span class="flbl">REGION</span><select class="fsel"><option>All regions</option><option>Odisha</option><option>Jharkhand</option><option>Madhya Pradesh</option><option>Chhattisgarh</option></select></div>
+    <div class="fg"><span class="flbl">STATUS</span><select class="fsel" id="sf2" onchange="atf()"><option value="">All</option><option>New</option><option>Verified</option><option>Under Investigation</option><option>False Positive</option></select></div>
+    <button class="fap" onclick="atf()">Apply</button>
+  </div>
+  <div class="twrap">
+    <div class="thd">
+      <div class="ttl">All detected incidents</div>
+      <div class="tacts">
+        <button class="tbtn on" onclick="tf('all',this)">All (7)</button>
+        <button class="tbtn" onclick="tf('HIGH',this)">High risk</button>
+        <button class="tbtn" onclick="tf('New',this)">New only</button>
+        <button class="tbtn" onclick="exCSV()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th onclick="st('id')">ID</th><th onclick="st('name')">Location</th><th onclick="st('area')">Area</th><th onclick="st('score')">Score</th><th onclick="st('risk')">Risk</th><th onclick="st('date')">Detected</th><th>Mineral</th><th>Est. Damage</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══ ECONOMIC DAMAGE CALCULATOR ═══ -->
+<div class="pv" id="vdamage">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Economic damage calculator</div>
+      <div style="font-size:11.5px;color:var(--text2)">Quantifies financial and environmental cost of each illegal mining incident</div>
+    </div>
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px;font-weight:600">Select alert zone to calculate:</div>
+      <div class="zone-selector" id="zoneSel"></div>
+      <div class="eco-hero" id="ecoHero">
+        <div class="eco-card total"><div class="eco-label" style="color:var(--red)">Total estimated loss</div><div class="eco-val" style="color:var(--red)" id="ecoTotal">₹0</div><div class="eco-sub" style="color:var(--red)">Combined environmental + economic damage</div></div>
+        <div class="eco-card ore"><div class="eco-label" style="color:var(--amber)">Ore value stolen</div><div class="eco-val" style="color:var(--amber)" id="ecoOre">₹0</div><div class="eco-sub" style="color:var(--amber)">Market value of illegally extracted mineral</div></div>
+        <div class="eco-card timber"><div class="eco-label" style="color:var(--green)">Timber & forest loss</div><div class="eco-val" style="color:var(--green)" id="ecoTimber">₹0</div><div class="eco-sub" style="color:var(--green)">Value of destroyed forest cover</div></div>
+        <div class="eco-card carbon"><div class="eco-label" style="color:var(--purple)">Carbon credit loss</div><div class="eco-val" style="color:var(--purple)" id="ecoCarbon">₹0</div><div class="eco-sub" style="color:var(--purple)">CO₂ sequestration value lost permanently</div></div>
+        <div class="eco-card water"><div class="eco-label" style="color:var(--blue)">Water body damage</div><div class="eco-val" style="color:var(--blue)" id="ecoWater">₹0</div><div class="eco-sub" style="color:var(--blue)">Groundwater and stream contamination cost</div></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)">Adjust parameters:</div>
+      <div class="calc-grid">
+        <div class="calc-input-group"><div class="calc-label">Affected area (hectares)</div><input class="calc-input" id="ci_area" type="number" value="2.4" oninput="calcDamage()"></div>
+        <div class="calc-input-group"><div class="calc-label">Mineral type</div><select class="calc-input" id="ci_mineral" onchange="calcDamage()"><option value="iron">Iron ore</option><option value="coal">Coal</option><option value="bauxite">Bauxite</option><option value="limestone">Limestone</option><option value="sand">River sand</option><option value="granite">Granite</option></select></div>
+        <div class="calc-input-group"><div class="calc-label">Ore grade (% purity)</div><input class="calc-input" id="ci_grade" type="number" value="62" min="10" max="100" oninput="calcDamage()"></div>
+        <div class="calc-input-group"><div class="calc-label">Extraction depth (meters)</div><input class="calc-input" id="ci_depth" type="number" value="3" min="1" max="50" oninput="calcDamage()"></div>
+        <div class="calc-input-group"><div class="calc-label">Forest density (trees/ha)</div><input class="calc-input" id="ci_trees" type="number" value="400" oninput="calcDamage()"></div>
+        <div class="calc-input-group"><div class="calc-label">Carbon price (₹/tonne)</div><input class="calc-input" id="ci_carbon" type="number" value="800" oninput="calcDamage()"></div>
+      </div>
+      <button class="calc-btn" onclick="calcDamage()">Recalculate damage estimate</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Damage breakdown by category</div></div>
+    <div class="card-body" style="padding:0">
+      <table class="breakdown-table">
+        <thead><tr><th>Damage category</th><th>Calculation basis</th><th>Estimated loss</th><th>% of total</th><th>Visual</th></tr></thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Zone-wise damage comparison — all 7 alerts</div></div>
+    <div class="card-body"><canvas id="damageChart" style="width:100%;height:240px;display:block"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ LEGAL EVIDENCE PACKAGE ═══ -->
+<div class="pv" id="vlegal">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Legal evidence package — Report #IMR-2026-0041</div>
+      <div style="font-size:11px;color:var(--text2)">Court-admissible evidence compilation for Zone A-7, Simlipal buffer</div>
+    </div>
+    <div class="card-body">
+      <div class="admissibility-score">
+        <div class="adm-ring">
+          <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="#00e5a0" stroke-width="5" stroke-dasharray="158 999" stroke-linecap="round"/></svg>
+          <div class="adm-val">89%</div>
+        </div>
+        <div class="adm-info">
+          <h4>Court admissibility score — 89%</h4>
+          <p>This evidence package meets 8 of 9 requirements for admissibility under Indian Evidence Act 1872. Only ground-truth officer verification is pending. Once field team confirms, score reaches 100%.</p>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px">Evidence checklist — 9 components:</div>
+      <div class="evidence-steps">
+        <div class="ev-step complete">
+          <div class="ev-num complete">1</div>
+          <div class="ev-content"><h4>Satellite imagery with metadata</h4><p>Sentinel-2 image pair acquired 09 Apr 2026 (T1) and 14 Apr 2026 (T2). ESA-certified data with acquisition timestamp, orbit number, and sensor calibration certificate. Coordinates: 21.4382°N, 86.1294°E.</p><span class="ev-tag complete">Verified — satellite certified</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">2</div>
+          <div class="ev-content"><h4>Change detection analysis report</h4><p>NDVI delta −0.38, BSI delta +0.44. CNN model confidence 0.91. Methodology documented: bi-temporal change detection using 6-channel CNN trained on 12,000 labelled patches. All parameters reproducible.</p><span class="ev-tag complete">Verified — methodology documented</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">3</div>
+          <div class="ev-content"><h4>Protected zone boundary overlap proof</h4><p>Disturbance polygon overlaps Simlipal Tiger Reserve buffer zone by 2.4 hectares. Boundary shapefile source: Ministry of Environment, Forest and Climate Change (MoEFCC), 2023. Spatial intersection confirmed.</p><span class="ev-tag complete">Verified — MoEFCC boundary confirmed</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">4</div>
+          <div class="ev-content"><h4>Chain of custody log</h4><p>Complete audit trail from satellite acquisition to report generation. Every system access timestamped and cryptographically hashed. Tamper-evident log maintained in append-only format.</p><span class="ev-tag complete">Verified — hash chain intact</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">5</div>
+          <div class="ev-content"><h4>Night-time activity evidence</h4><p>VIIRS nighttime radiance anomaly detected at 02:30 IST on 12 Apr 2026. Delta radiance +6.2 nW/cm²/sr above baseline — consistent with heavy machinery and floodlights. Evidence of deliberate night operations.</p><span class="ev-tag complete">Verified — VIIRS data attached</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">6</div>
+          <div class="ev-content"><h4>Historical incident cross-reference</h4><p>Confirmed illegal mining incident IMR-2024-17 occurred 800m from this location in November 2024. FIR No. 247/2024 filed at Baripada Police Station. Court proceedings active. Repeat offender pattern established.</p><span class="ev-tag complete">Verified — court records attached</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">7</div>
+          <div class="ev-content"><h4>Economic damage quantification</h4><p>Estimated illegal ore extraction value: ₹2.3 crore. Total environmental damage: ₹31.4 lakh. Calculation methodology follows Central Empowered Committee guidelines for mineral damage assessment.</p><span class="ev-tag complete">Verified — CEC methodology applied</span></div>
+        </div>
+        <div class="ev-step complete">
+          <div class="ev-num complete">8</div>
+          <div class="ev-content"><h4>Digital signature and timestamp</h4><p>Report digitally signed by MineWatch system (SHA-256). Generation timestamp: 14 Apr 2026, 09:32:17 IST. Hash: 3a7f2c9d... Document integrity verifiable by any party.</p><span class="ev-tag complete">Signed — SHA-256 verified</span></div>
+        </div>
+        <div class="ev-step pending">
+          <div class="ev-num pending">9</div>
+          <div class="ev-content"><h4>Ground truth field verification</h4><p>Field officer visit required to physically confirm disturbance, photograph site, collect soil/ore samples, and witness statement. Dispatch ordered — expected within 48 hours.</p><span class="ev-tag pending">Pending — field team dispatched</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Applicable legal acts and sections</div></div>
+    <div class="card-body">
+      <div class="legal-acts">
+        <div class="act-card"><div class="act-name">MMDR Act, 1957</div><div class="act-section">Section 21 — Penalty for unlawful mining</div><div class="act-desc">Imprisonment up to 5 years + fine equivalent to 5× mineral value. Applicable for all unauthorized extraction.</div></div>
+        <div class="act-card"><div class="act-name">Forest Conservation Act, 1980</div><div class="act-section">Section 2 — Prohibited use of forest land</div><div class="act-desc">No mining in designated forest land without central government approval. Violation = criminal offence.</div></div>
+        <div class="act-card"><div class="act-name">Environment Protection Act, 1986</div><div class="act-section">Section 15 — Penalty for contravention</div><div class="act-desc">Imprisonment up to 5 years + ₹1 lakh fine per day of violation. Covers groundwater contamination.</div></div>
+        <div class="act-card"><div class="act-name">Wildlife Protection Act, 1972</div><div class="act-section">Section 51 — Penalty for contravention</div><div class="act-desc">Imprisonment up to 7 years for activities in Tiger Reserve buffer zone. Applies to Simlipal case.</div></div>
+        <div class="act-card"><div class="act-name">FRA (Forest Rights Act), 2006</div><div class="act-section">Section 4 — Rights of forest dwellers</div><div class="act-desc">Violation of tribal community rights. External mining in Schedule V areas requires Gram Sabha consent.</div></div>
+        <div class="act-card"><div class="act-name">IPC 1860</div><div class="act-section">Section 379 — Theft of property</div><div class="act-desc">Mineral theft is cognizable offence under IPC. Enables immediate arrest without warrant.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Chain of custody — tamper-evident audit log</div></div>
+    <div class="card-body" style="padding:0">
+      <div class="chain-of-custody" style="padding:0 18px">
+        <div class="coc-row"><div class="coc-time">14 Apr 09:27:03</div><div><div class="coc-event"><b>Sentinel-2 image acquired</b> — ESA Copernicus Hub, orbit 12847</div><div class="coc-hash">SHA-256: a3f9e2b1c7d4...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 09:29:11</div><div><div class="coc-event"><b>Preprocessing complete</b> — NDVI and BSI computed, cloud mask applied</div><div class="coc-hash">SHA-256: 7b2d4f8a1c3e...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 09:31:44</div><div><div class="coc-event"><b>CNN inference executed</b> — Model v2.1, score 0.91, threshold exceeded</div><div class="coc-hash">SHA-256: 2c8f1a9d5b7e...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 09:32:17</div><div><div class="coc-event"><b>Report IMR-2026-0041 generated</b> — auto-dispatched to DMO Mayurbhanj</div><div class="coc-hash">SHA-256: 9e3a7c2f4d1b...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 11:00:00</div><div><div class="coc-event"><b>Viewed by Officer Sharma</b> — Dashboard access logged, IP 10.0.1.45</div><div class="coc-hash">SHA-256: 4f1b8e6a2d9c...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 11:15:00</div><div><div class="coc-event"><b>Status updated</b> — "Under Investigation" by Officer Sharma</div><div class="coc-hash">SHA-256: 6d2c9f3a8e1b...</div></div></div>
+        <div class="coc-row"><div class="coc-time">14 Apr 14:30:00</div><div><div class="coc-event"><b>Field team dispatched</b> — Team 3 assigned, ETA 48 hours</div><div class="coc-hash">SHA-256: 1a8b4e7f2c3d...</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Download evidence package</div></div>
+    <div class="card-body">
+      <div class="evidence-actions">
+        <button class="ev-btn primary" onclick="dlEvidence('full')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Full evidence package PDF</button>
+        <button class="ev-btn secondary" onclick="dlEvidence('satellite')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Satellite imagery ZIP</button>
+        <button class="ev-btn secondary" onclick="dlEvidence('chain')"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Chain of custody log</button>
+        <button class="ev-btn secondary" onclick="dlEvidence('json')"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Machine-readable JSON</button>
+        <button class="ev-btn secondary" onclick="shareEmail()"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email to prosecutor</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ENFORCEMENT GAP ANALYSIS ═══ -->
+<div class="pv" id="venforcement">
+  <div class="gap-summary">
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--red)">47</div><div class="gap-stat-lbl">Total alerts detected this month</div></div>
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--amber)">12</div><div class="gap-stat-lbl">FIRs filed (25% response rate)</div></div>
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--red)">35</div><div class="gap-stat-lbl">Alerts with zero enforcement action</div></div>
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--purple)">6.4×</div><div class="gap-stat-lbl">Alerts per FIR filed — system overload</div></div>
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--blue)">11.2</div><div class="gap-stat-lbl">Avg days to first field visit</div></div>
+    <div class="gap-stat"><div class="gap-stat-val" style="color:var(--green)">₹18.4Cr</div><div class="gap-stat-lbl">Total damage in unenforced zones</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">District-wise enforcement gap analysis</div><div style="font-size:11px;color:var(--text2)">Alerts detected vs FIRs filed vs field visits completed</div></div>
+    <div style="overflow-x:auto">
+      <table class="district-gap-table">
+        <thead><tr><th>District</th><th>State</th><th>Alerts</th><th>FIRs filed</th><th>Field visits</th><th>Response rate</th><th>Avg response (days)</th><th>Gap severity</th><th>Damage (₹ Cr)</th></tr></thead>
+        <tbody id="gapTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="gap-chart-wrap">
+    <div class="card"><div class="card-hd"><div class="card-title">Alerts vs FIRs — by district</div></div><div class="card-body"><canvas id="gapChart1" style="width:100%;height:220px;display:block"></canvas></div></div>
+    <div class="card"><div class="card-hd"><div class="card-title">Response time trend — last 6 months</div></div><div class="card-body"><canvas id="gapChart2" style="width:100%;height:220px;display:block"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">Root cause analysis — why enforcement gaps exist</div></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px">Staff shortage</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65">1 mining officer per 2,400 km² in Chhattisgarh. National average requires 3× more staff to match alert volume. 68% of officers handle 4+ districts simultaneously.</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:8px">Remote terrain</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65">42% of HIGH alerts in zones with no road access within 15km. Helicopter deployment needed but rarely authorized below ₹5Cr damage threshold. Average field visit delay: 14 days.</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:8px">Political interference</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65">Districts with election activity show 71% lower FIR filing rates. Alert-to-FIR conversion drops from 28% to 8% in pre-election quarters. Enforcement attention diverted.</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">No real-time detection</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.65">Before MineWatch: average detection lag was 47 days. Illegal miners extract and leave before detection. MineWatch reduces lag to 5 days — but enforcement still needs 11 days to respond.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-title">AI-generated enforcement recommendations</div></div>
+    <div class="card-body">
+      <div class="rec-list" id="recList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT VIEW -->
+<div class="pv" id="vreport">
+  <div class="rwrap">
+    <div class="rtop"><div class="rtr">
+      <div>
+        <div class="rid">REPORT #IMR-2026-0041 · AUTO-GENERATED · 14 APR 2026, 09:32 IST · CONFIDENTIAL</div>
+        <div class="rhl">Illegal excavation detected —<br>Simlipal buffer zone, Odisha</div>
+        <div class="rsub">Sentinel-2 bi-temporal · 09 Apr vs 14 Apr 2026 · 10m resolution · Evidence package complete</div>
+      </div>
+      <div class="rurg"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Immediate action required</div>
+    </div></div>
+    <div class="rgrid">
+      <div class="rf"><label>COORDINATES</label><span style="color:#00e5a0;font-family:monospace;font-size:11px">21.4382°N, 86.1294°E</span></div>
+      <div class="rf"><label>AFFECTED AREA</label><span>2.4 hectares</span></div>
+      <div class="rf"><label>ILLEGAL MINING SCORE</label><span style="color:#ff4d6d">0.91 / 1.00</span></div>
+      <div class="rf"><label>RISK LEVEL</label><span style="color:#ff4d6d">HIGH — Confirmed</span></div>
+      <div class="rf"><label>DETECTION DATE</label><span>14 Apr 2026</span></div>
+      <div class="rf"><label>TOTAL DAMAGE EST.</label><span style="color:#ff4d6d">₹2.63 crore</span></div>
+      <div class="rf"><label>NDVI DELTA</label><span style="color:#ff4d6d">−0.38</span></div>
+      <div class="rf"><label>BARE SOIL INDEX Δ</label><span style="color:#ff4d6d">+0.44</span></div>
+      <div class="rf"><label>PROTECTED ZONE</label><span style="color:#ffb340">Simlipal — Class A</span></div>
+      <div class="rf"><label>MINERAL TYPE</label><span style="color:#ffb340">Iron ore (90% risk)</span></div>
+      <div class="rf"><label>LEGAL ADMISSIBILITY</label><span style="color:#00e5a0">89% — Court ready</span></div>
+      <div class="rf"><label>ENFORCEMENT DISTRICT</label><span style="color:#ff4d6d">Mayurbhanj — CRITICAL gap</span></div>
+    </div>
+    <div class="rbody">
+      <p>Significant surface disturbance detected within <b>Simlipal Tiger Reserve buffer zone, Mayurbhanj district, Odisha</b>. Bi-temporal Sentinel-2 analysis identifies a <b>2.4-hectare vegetation loss polygon</b> consistent with mechanical iron-ore excavation. NDVI declined by <b>0.38</b> from baseline. BSI increased by <b>+0.44</b> — exceeding the alert threshold by 1.76×.</p>
+      <p><b>Economic damage:</b> Estimated illegal ore value extracted: <b>₹2.3 crore</b>. Total environmental damage (timber + carbon + water): <b>₹31.4 lakh</b>. Combined: <b>₹2.63 crore</b>.</p>
+      <p><b>Legal status:</b> Evidence package 89% complete — court admissible. Applicable acts: MMDR 1957 (Sec 21), Forest Conservation Act 1980 (Sec 2), Wildlife Protection Act 1972 (Sec 51). Historical FIR on file (247/2024, Baripada PS).</p>
+      <p><b>Enforcement gap alert:</b> Mayurbhanj district has a <b>CRITICAL enforcement gap</b> — 8 alerts detected in last 30 days, only 1 FIR filed (12.5% response rate). Average field visit delay: 14 days. Recommend escalation to State Mining Director.</p>
+    </div>
+    <div class="rbar">
+      <button class="rb rb-p" onclick="dlPDF()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</button>
+      <button class="rb rb-s" onclick="dlJSON()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Export JSON</button>
+      <button class="rb rb-s" onclick="dlGeoJSON()"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>GeoJSON</button>
+      <button class="rb rb-s" onclick="cpc()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy coords</button>
+      <button class="rb rb-s" onclick="openM()"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2"/></svg>Dispatch team</button>
+    </div>
+  </div>
+</div>
+
+<!-- METRICS VIEW -->
+<div class="pv" id="vmetrics">
+  <div class="mc-grid">
+    <div class="mc"><div class="mc-val" style="color:#00e5a0">91.4%</div><div class="mc-lbl">Change detection recall</div><div class="mc-bar"><div class="mc-f" style="width:91.4%;background:#00e5a0"></div></div></div>
+    <div class="mc"><div class="mc-val" style="color:#ffb340">2.3</div><div class="mc-lbl">False positives per 100 km²</div><div class="mc-bar"><div class="mc-f" style="width:23%;background:#ffb340"></div></div></div>
+    <div class="mc"><div class="mc-val" style="color:#4d9eff">±18m</div><div class="mc-lbl">Coordinate accuracy</div><div class="mc-bar"><div class="mc-f" style="width:82%;background:#4d9eff"></div></div></div>
+    <div class="mc"><div class="mc-val" style="color:#00e5a0">4.2m</div><div class="mc-lbl">Report generation latency</div><div class="mc-bar"><div class="mc-f" style="width:88%;background:#00e5a0"></div></div></div>
+    <div class="mc"><div class="mc-val" style="color:#ff4d6d">₹2.63Cr</div><div class="mc-lbl">Total damage quantified</div><div class="mc-bar"><div class="mc-f" style="width:75%;background:#ff4d6d"></div></div></div>
+    <div class="mc"><div class="mc-val" style="color:#a78bfa">25%</div><div class="mc-lbl">Enforcement response rate</div><div class="mc-bar"><div class="mc-f" style="width:25%;background:#a78bfa"></div></div></div>
+  </div>
+  <div class="crows">
+    <div class="cc"><div class="cc-lbl">Monthly alert volume — 2026</div><canvas id="ch1" style="width:100%;height:200px;display:block"></canvas></div>
+    <div class="cc"><div class="cc-lbl">Risk distribution this month</div><div style="display:flex;align-items:center;gap:16px;height:200px"><canvas id="ch2" style="flex:1;height:100%;display:block"></canvas><div style="display:flex;flex-direction:column;gap:9px"><div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#ff4d6d;display:inline-block"></span><span style="font-size:11.5px;color:var(--text2)">High <b style="color:var(--text)">3</b></span></div><div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#ffb340;display:inline-block"></span><span style="font-size:11.5px;color:var(--text2)">Medium <b style="color:var(--text)">2</b></span></div><div style="display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;background:#00e5a0;display:inline-block"></span><span style="font-size:11.5px;color:var(--text2)">Low <b style="color:var(--text)">2</b></span></div></div></div></div>
+  </div>
+  <div class="cc"><div class="cc-lbl">Enforcement gap — alerts vs FIRs by district</div><canvas id="ch3" style="width:100%;height:200px;display:block"></canvas></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="moverlay" id="mov" onclick="if(event.target===this)closeM()">
+  <div class="mdl"><button class="mdl-x" onclick="closeM()">✕</button><h3>Dispatch field team</h3><p>Send immediate dispatch to District Mining Officer (Mayurbhanj) and Odisha Forest Department for Zone A-7? This will be logged in the chain of custody.</p><div class="mdl-btns"><button class="rb rb-s" style="font-size:12px;padding:7px 14px" onclick="closeM()">Cancel</button><button class="rb rb-p" style="font-size:12px;padding:7px 14px" onclick="confD()">Confirm dispatch</button></div></div>
+</div>
+
+<script>
+// ═══ DATA ═══════════════════════════════════════════════════════
+const D=[
+  {id:'A-001',name:'Zone A-7 — Simlipal buffer',region:'Odisha',lat:21.4382,lng:86.1294,area:2.4,score:.91,risk:'HIGH',date:'14 Apr 2026',daysAgo:2,prot:true,status:'New',ndvi:-.38,bsi:.44,mineral:'Iron ore',factors:{location:.95,night:.88,infrastructure:.82,speed:.91,sudden:.92,geology:.90,history:.70,concealment:.75,vehicle:.68,seasonal:.70},exp:'NDVI drop 0.38. BSI +0.44. Excavation geometry + night operations. Repeat offender zone.'},
+  {id:'A-002',name:'Zone C-2 — Saranda corridor',region:'Jharkhand',lat:22.1847,lng:85.761,area:3.1,score:.87,risk:'HIGH',date:'12 Apr 2026',daysAgo:4,prot:true,status:'Under Investigation',ndvi:-.31,bsi:.37,mineral:'Coal',factors:{location:.90,night:.75,infrastructure:.80,speed:.85,sudden:.88,geology:.85,history:.70,concealment:.65,vehicle:.72,seasonal:.70},exp:'Vegetation loss with road tracks. Historical incident 800m. Active coal extraction.'},
+  {id:'A-003',name:'Zone B-11 — Kanha periphery',region:'Madhya Pradesh',lat:22.3391,lng:80.6127,area:.8,score:.64,risk:'MEDIUM',date:'10 Apr 2026',daysAgo:6,prot:true,status:'New',ndvi:-.19,bsi:.21,mineral:'Limestone',factors:{location:.70,night:.40,infrastructure:.55,speed:.60,sudden:.65,geology:.70,history:.20,concealment:.45,vehicle:.50,seasonal:.70},exp:'Moderate change. BSI borderline. Monitor next pass.'},
+  {id:'A-004',name:'Zone D-5 — Bailadila range',region:'Chhattisgarh',lat:18.682,lng:81.312,area:4.7,score:.93,risk:'HIGH',date:'09 Apr 2026',daysAgo:7,prot:false,status:'Verified',ndvi:-.44,bsi:.51,mineral:'Iron ore',factors:{location:.85,night:.90,infrastructure:.88,speed:.95,sudden:.92,geology:.90,history:.90,concealment:.80,vehicle:.85,seasonal:.70},exp:'Highest confidence. Tailings pile visible. Organized operation.'},
+  {id:'A-005',name:'Zone E-3 — Niyamgiri hills',region:'Odisha',lat:19.517,lng:83.424,area:1.2,score:.55,risk:'MEDIUM',date:'08 Apr 2026',daysAgo:8,prot:true,status:'New',ndvi:-.15,bsi:.18,mineral:'Bauxite',factors:{location:.80,night:.30,infrastructure:.45,speed:.50,sudden:.55,geology:.65,history:.20,concealment:.40,vehicle:.35,seasonal:.70},exp:'Tribal forest land. Small polygon. Protected zone.'},
+  {id:'A-006',name:'Zone F-8 — Rajmahal hills',region:'Jharkhand',lat:24.763,lng:87.841,area:.4,score:.32,risk:'LOW',date:'07 Apr 2026',daysAgo:9,prot:false,status:'False Positive',ndvi:-.07,bsi:.09,mineral:'Coal',factors:{location:.20,night:.10,infrastructure:.25,speed:.15,sudden:.20,geology:.10,history:.20,concealment:.15,vehicle:.20,seasonal:.30},exp:'Seasonal agriculture. No excavation pattern.'},
+  {id:'A-007',name:'Zone G-1 — Abujhmaad',region:'Chhattisgarh',lat:19.847,lng:81.007,area:2.0,score:.78,risk:'HIGH',date:'06 Apr 2026',daysAgo:10,prot:true,status:'New',ndvi:-.27,bsi:.33,mineral:'Coal',factors:{location:.90,night:.65,infrastructure:.70,speed:.75,sudden:.80,geology:.85,history:.20,concealment:.70,vehicle:.60,seasonal:.70},exp:'Remote tribal forest. NDVI decline. Only satellite detection possible.'},
+];
+
+const FACTORS=[
+  {key:'location',name:'Location legality',weight:.25},
+  {key:'sudden',name:'Sudden appearance',weight:.15},
+  {key:'speed',name:'Disturbance speed',weight:.12},
+  {key:'infrastructure',name:'No infrastructure',weight:.10},
+  {key:'history',name:'Historical match',weight:.10},
+  {key:'night',name:'Night activity',weight:.08},
+  {key:'geology',name:'Geology risk',weight:.08},
+  {key:'concealment',name:'Concealment signs',weight:.06},
+  {key:'vehicle',name:'Vehicle tracks',weight:.04},
+  {key:'seasonal',name:'Seasonal timing',weight:.02},
+];
+
+const GAP_DATA=[
+  {district:'Mayurbhanj',state:'Odisha',alerts:8,firs:1,visits:2,avgDays:14,damage:2.63,gap:'CRITICAL'},
+  {district:'West Singhbhum',state:'Jharkhand',alerts:6,firs:2,visits:3,avgDays:10,damage:1.84,gap:'HIGH'},
+  {district:'Bastar',state:'Chhattisgarh',alerts:9,firs:3,visits:4,avgDays:12,damage:3.21,gap:'CRITICAL'},
+  {district:'Mandla',state:'M.Pradesh',alerts:4,firs:2,visits:3,avgDays:7,damage:0.48,gap:'MEDIUM'},
+  {district:'Sundergarh',state:'Odisha',alerts:7,firs:2,visits:3,avgDays:11,damage:2.10,gap:'HIGH'},
+  {district:'Dantewada',state:'Chhattisgarh',alerts:5,firs:1,visits:2,avgDays:16,damage:1.95,gap:'CRITICAL'},
+  {district:'Dumka',state:'Jharkhand',alerts:3,firs:1,visits:2,avgDays:8,damage:0.72,gap:'MEDIUM'},
+  {district:'Vizianagaram',state:'Andhra Pradesh',alerts:2,firs:1,visits:2,avgDays:5,damage:0.34,gap:'LOW'},
+];
+
+const MINERAL_PRICE={iron:4200,coal:2800,bauxite:3500,limestone:1200,sand:800,granite:2200};
+const MINERAL_DENSITY={iron:2.5,coal:1.4,bauxite:2.0,limestone:2.6,sand:1.8,granite:2.7};
+
+let rf='all',ponly=false,aid=null,tlp=false,tlt=null,tlf=0,trf='all',SD={};
+let mapView='standard',baDragging=false;
+let LAYERS={alerts:true,ndvi:false,bsi:false,prot:true,damage:false};
+const TLD=['09 Mar','23 Mar','04 Apr','09 Apr','14 Apr'];
+const TLS=[[8,10],[13,15],[18,20],[23,26],[30,36]];
+const INDIA=[[37.1,74.9],[35.5,77.8],[34.1,78.2],[33.5,78.8],[32.2,78.5],[31.0,80.2],[29.5,80.5],[27.5,88.1],[26.2,89.1],[25.3,89.8],[24.8,92.3],[23.7,93.4],[22.5,92.8],[22.0,92.0],[21.3,92.6],[20.8,87.0],[19.8,86.0],[18.0,84.0],[16.5,82.0],[15.0,80.0],[13.5,80.3],[11.0,77.5],[8.5,77.5],[8.0,77.0],[9.0,76.5],[11.5,74.8],[14.0,74.0],[16.5,73.3],[18.0,73.0],[20.0,72.8],[21.0,69.5],[22.7,68.5],[24.5,68.8],[27.0,67.0],[28.0,68.5],[30.5,72.0],[32.0,73.0],[34.7,73.0],[36.5,74.4],[37.1,74.9]];
+
+function rc(r){return r==='HIGH'?'#ff4d6d':r==='MEDIUM'?'#ffb340':'#00e5a0'}
+function sc(s){return s>=.8?'#ff4d6d':s>=.5?'#ffb340':'#00e5a0'}
+function fmt(n){if(n>=10000000)return'₹'+(n/10000000).toFixed(2)+' crore';if(n>=100000)return'₹'+(n/100000).toFixed(1)+' lakh';return'₹'+Math.round(n).toLocaleString('en-IN');}
+
+// ═══ MAP ════════════════════════════════════════════════════════
+function project(lat,lng,W,H){const minLat=8,maxLat=37,minLng=68,maxLng=98;return{x:((lng-minLng)/(maxLng-minLng))*W,y:H-((lat-minLat)/(maxLat-minLat))*H};}
+let hovZ=null;
+function drawMap(){
+  const wrap=document.getElementById('mapWrap');
+  const canvas=document.getElementById('mapCanvas');
+  const W=wrap.clientWidth||800,H=wrap.clientHeight||400;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle=mapView==='satellite'?'#0a1a0e':mapView==='terrain'?'#0e1208':'#060a12';
+  ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  for(let i=0;i<W;i+=40){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+  for(let i=0;i<H;i+=40){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
+  ctx.beginPath();
+  INDIA.forEach((p,i)=>{const{x,y}=project(p[0],p[1],W,H);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.closePath();
+  ctx.fillStyle=mapView==='satellite'?'rgba(20,50,20,.5)':mapView==='terrain'?'rgba(40,35,10,.5)':'rgba(30,40,64,.6)';
+  ctx.fill();ctx.strokeStyle='rgba(77,158,255,.3)';ctx.lineWidth=1.5;ctx.stroke();
+  if(LAYERS.prot){D.filter(a=>a.prot).forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);const r=Math.max(20,a.area*9);ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='rgba(77,158,255,.06)';ctx.fill();ctx.strokeStyle='rgba(77,158,255,.35)';ctx.lineWidth=1;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);});}
+  if(LAYERS.ndvi){D.forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);ctx.beginPath();ctx.arc(x,y,Math.max(18,a.area*10),0,Math.PI*2);ctx.fillStyle='rgba(74,222,128,.12)';ctx.fill();ctx.strokeStyle='rgba(74,222,128,.3)';ctx.lineWidth=1;ctx.stroke();});}
+  if(LAYERS.bsi){D.forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);ctx.beginPath();ctx.arc(x,y,Math.max(16,a.area*8),0,Math.PI*2);ctx.fillStyle='rgba(255,179,64,.1)';ctx.fill();ctx.strokeStyle='rgba(255,179,64,.3)';ctx.lineWidth=1;ctx.stroke();});}
+  if(LAYERS.damage){D.forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);const dmg=computeDamageForAlert(a);const r=Math.max(22,Math.sqrt(dmg.total/500000)*8);const grad=ctx.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba(167,139,250,.4)');grad.addColorStop(1,'rgba(167,139,250,0)');ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();});}
+  if(LAYERS.alerts){D.forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);const col=rc(a.risk);const r=Math.max(14,a.area*7);const isHov=hovZ===a.id,isAct=aid===a.id;if(isAct){ctx.beginPath();ctx.arc(x,y,r+10,0,Math.PI*2);ctx.strokeStyle=col+'50';ctx.lineWidth=2;ctx.stroke();}ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=isHov?col+'80':col+'45';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=isHov||isAct?2.5:1.8;ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(a.score.toFixed(2),x,y+4);});}
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.font='10px system-ui';ctx.textAlign='left';ctx.fillText('N▲',10,18);
+}
+function setMV(v,btn){mapView=v;document.querySelectorAll('.mvt').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(v==='beforeafter'){document.getElementById('baWrap').classList.add('show');drawBA();initBA();}else{document.getElementById('baWrap').classList.remove('show');drawMap();}}
+function tlayer(n,btn){btn.classList.toggle('on');LAYERS[n]=!LAYERS[n];drawMap();}
+function getZoneAtPos(mx,my,W,H){for(const a of D){const{x,y}=project(a.lat,a.lng,W,H);const r=Math.max(14,a.area*7);if((mx-x)**2+(my-y)**2<=r*r)return a;}return null;}
+function initMapEvents(){
+  const canvas=document.getElementById('mapCanvas');
+  canvas.addEventListener('mousemove',e=>{if(mapView==='beforeafter')return;const rect=canvas.getBoundingClientRect();const mx=(e.clientX-rect.left)*(canvas.width/rect.width);const my=(e.clientY-rect.top)*(canvas.height/rect.height);const z=getZoneAtPos(mx,my,canvas.width,canvas.height);const tt=document.getElementById('mtt');if(z){canvas.style.cursor='pointer';hovZ=z.id;const dmg=computeDamageForAlert(z);tt.innerHTML=`<div class="mtt-name">${z.name}</div><div class="mtt-row">Score: <b style="color:${rc(z.risk)}">${z.score.toFixed(2)}</b></div><div class="mtt-row">Area: <b>${z.area} ha</b> · ${z.mineral}</div><div class="mtt-row">Est. damage: <b style="color:#ff4d6d">${fmt(dmg.total)}</b></div><div class="mtt-row">Status: <b>${z.status}</b></div>`;const px=e.offsetX+16,py=e.offsetY-10;tt.style.left=Math.min(px,canvas.clientWidth-200)+'px';tt.style.top=Math.max(py,5)+'px';tt.classList.add('show');}else{canvas.style.cursor='default';hovZ=null;tt.classList.remove('show');}drawMap();});
+  canvas.addEventListener('click',e=>{if(mapView==='beforeafter')return;const rect=canvas.getBoundingClientRect();const mx=(e.clientX-rect.left)*(canvas.width/rect.width);const my=(e.clientY-rect.top)*(canvas.height/rect.height);const z=getZoneAtPos(mx,my,canvas.width,canvas.height);if(z)sd2(z.id);});
+  canvas.addEventListener('mouseleave',()=>{hovZ=null;document.getElementById('mtt').classList.remove('show');drawMap();});
+  window.addEventListener('resize',()=>{if(mapView!=='beforeafter')drawMap();});
+}
+function drawBA(){
+  const wrap=document.getElementById('mapWrap');
+  const W=wrap.clientWidth||800,H=wrap.clientHeight||400;
+  function drawScene(canvasId,isAfter){
+    const c=document.getElementById(canvasId);c.width=W;c.height=H;c.style.width='100%';c.style.height='100%';
+    const ctx=c.getContext('2d');
+    ctx.fillStyle=isAfter?'#0d0a06':'#060f08';ctx.fillRect(0,0,W,H);
+    for(let i=0;i<(isAfter?30:60);i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*25+10,0,Math.PI*2);ctx.fillStyle=isAfter?`rgba(${60+Math.random()*40},${40+Math.random()*30},${10+Math.random()*15},.4)`:`rgba(${20+Math.random()*30},${60+Math.random()*50},${20+Math.random()*20},.5)`;ctx.fill();}
+    INDIA.forEach((p,i)=>{const{x,y}=project(p[0],p[1],W,H);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle=isAfter?'rgba(77,158,255,.2)':'rgba(74,222,128,.2)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=isAfter?'rgba(30,40,64,.5)':'rgba(20,60,20,.4)';ctx.fill();
+    D.forEach(a=>{const{x,y}=project(a.lat,a.lng,W,H);const col=isAfter?rc(a.risk):'#4ade80';const r=isAfter?Math.max(14,a.area*7):10;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=col+(isAfter?'60':'40');ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=isAfter?2:1;ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.fillText(isAfter?a.score.toFixed(2):'FOREST',x,y+3);});
+    ctx.fillStyle=isAfter?'rgba(255,77,109,.7)':'rgba(74,222,128,.7)';ctx.font='bold 12px system-ui';ctx.textAlign='left';
+    ctx.fillText(isAfter?'T2 — Disturbance detected — NDVI avg 0.34':'T1 — Dense forest cover — NDVI avg 0.72',12,22);
+  }
+  drawScene('baBC',false);drawScene('baAC',true);
+}
+function initBA(){
+  const div=document.getElementById('baDivider');const wrap=document.getElementById('baWrap');const after=document.getElementById('baAfter');
+  const move=pct=>{div.style.left=pct+'%';after.style.clipPath=`inset(0 ${100-pct}% 0 0)`;};
+  div.addEventListener('mousedown',()=>baDragging=true);
+  document.addEventListener('mouseup',()=>baDragging=false);
+  document.addEventListener('mousemove',e=>{if(!baDragging)return;const r=wrap.getBoundingClientRect();move(Math.max(5,Math.min(95,((e.clientX-r.left)/r.width)*100)));});
+  div.addEventListener('touchstart',e=>{baDragging=true;e.preventDefault();},{passive:false});
+  document.addEventListener('touchend',()=>baDragging=false);
+  document.addEventListener('touchmove',e=>{if(!baDragging)return;const r=wrap.getBoundingClientRect();move(Math.max(5,Math.min(95,((e.touches[0].clientX-r.left)/r.width)*100)));},{passive:false});
+}
+
+// ═══ ALERTS LIST ═════════════════════════════════════════════════
+function ral(){
+  const q=document.getElementById('sq').value.toLowerCase();
+  const sv2=document.querySelector('.ssl').value;
+  let data=[...D].filter(a=>{
+    if(rf!=='all'&&a.risk!==rf)return false;
+    if(ponly&&!a.prot)return false;
+    if(q&&!a.name.toLowerCase().includes(q)&&!a.region.toLowerCase().includes(q))return false;
+    return true;
+  });
+  data.sort((a,b)=>sv2==='score'?b.score-a.score:sv2==='area'?b.area-a.area:0);
+  const dmgs=data.map(a=>computeDamageForAlert(a));
+  document.getElementById('alist').innerHTML=data.map((a,i)=>`
+    <div class="ai${aid===a.id?' on':''}" onclick="sd2('${a.id}')">
+      <div class="ai-top"><span class="bdg b${a.risk.charAt(0).toLowerCase()}">${a.risk}</span><span class="ai-sc" style="color:${sc(a.score)}">${a.score.toFixed(2)}</span></div>
+      <div class="ai-nm">${a.name}</div>
+      <div class="ai-mt"><span>${a.region}</span><span>${a.area} ha</span><span style="color:#a78bfa">${fmt(dmgs[i].total)}</span></div>
+      <div class="ai-br"><div class="ai-bf" style="width:${(a.score*100).toFixed(0)}%;background:${sc(a.score)}"></div></div>
+      <div class="ai-st">
+        <span class="sdot" style="background:${a.status==='New'?'#4d9eff':a.status==='Verified'?'#00e5a0':a.status==='Under Investigation'?'#ffb340':'#4a556a'}"></span>
+        <span style="font-size:10px;color:var(--text2)">${a.status}</span>
+        ${a.status==='New'?'<span class="ntag">NEW</span>':''}
+        ${a.prot?'<span style="font-size:9px;color:#ffb340;margin-left:auto">Protected</span>':''}
+      </div>
+    </div>`).join('');
+}
+function sfr(r,btn){rf=r;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');ral();}
+function tpo(btn){ponly=!ponly;btn.classList.toggle('on');ral();}
+
+// ═══ DETAILS PANEL ═══════════════════════════════════════════════
+function sd2(id){
+  const a=D.find(x=>x.id===id);if(!a)return;
+  aid=id;ral();drawMap();
+  const col=rc(a.risk);const c=(Math.PI*2*28*a.score).toFixed(1);
+  const dmg=computeDamageForAlert(a);
+  document.getElementById('dpt').textContent=a.id+' — '+a.risk;
+  document.getElementById('dpb').innerHTML=`
+    <div class="dp-sec"><div class="dp-lbl">GPS Coordinates</div><div class="coord-box">${a.lat.toFixed(4)}°N, ${a.lng.toFixed(4)}°E</div></div>
+    <div class="dp-sec"><div class="dp-lbl">Detection metrics</div>
+      <div class="dp-grid">
+        <div class="dp-f"><label>AREA</label><span>${a.area} ha</span></div>
+        <div class="dp-f"><label>DETECTED</label><span style="font-size:11px">${a.date}</span></div>
+        <div class="dp-f"><label>NDVI Δ</label><span style="color:${a.ndvi<-.25?'#ff4d6d':'#ffb340'}">${a.ndvi.toFixed(2)}</span></div>
+        <div class="dp-f"><label>BSI Δ</label><span style="color:${a.bsi>.3?'#ff4d6d':'#ffb340'}">+${a.bsi.toFixed(2)}</span></div>
+        <div class="dp-f"><label>MINERAL</label><span style="color:#ffb340;font-size:11px">${a.mineral}</span></div>
+        <div class="dp-f"><label>EST. DAMAGE</label><span style="color:#a78bfa;font-size:11px">${fmt(dmg.total)}</span></div>
+      </div>
+    </div>
+    <div class="dp-sec"><div class="dp-lbl">Illegal mining probability</div>
+      <div class="score-ring">
+        <div class="rw"><svg width="60" height="60" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" stroke-width="5"/><circle cx="32" cy="32" r="28" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${c} 999" stroke-linecap="round"/></svg><div class="rv" style="color:${col}">${a.score.toFixed(2)}</div></div>
+        <div class="ri"><h4 style="color:${col}">${a.risk} confidence</h4><p>${a.risk==='HIGH'?'Field verification within 48h.':a.risk==='MEDIUM'?'Monitor next pass.':'Log and reassess.'}</p></div>
+      </div>
+    </div>
+    <div class="dp-sec"><div class="dp-lbl">10-factor breakdown</div>
+      <div class="factor-list">${FACTORS.map(f=>`
+        <div class="factor-row">
+          <div class="factor-name">${f.name}</div>
+          <div class="factor-bar-bg"><div class="factor-bar-fill" style="width:${(a.factors[f.key]*100).toFixed(0)}%;background:${a.factors[f.key]>=.75?'#ff4d6d':a.factors[f.key]>=.5?'#ffb340':'#00e5a0'}"></div></div>
+          <div class="factor-val" style="color:${a.factors[f.key]>=.75?'#ff4d6d':a.factors[f.key]>=.5?'#ffb340':'#00e5a0'}">${(a.factors[f.key]*100).toFixed(0)}%</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="dp-sec"><div class="dp-lbl">Why flagged?</div><div class="exp-box">${a.exp}</div></div>
+    <div class="dp-sec"><div class="dp-lbl">Economic damage summary</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 8px;background:var(--bg3);border-radius:5px"><span style="color:var(--text2)">Ore value stolen</span><span style="color:#ffb340;font-weight:700">${fmt(dmg.ore)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 8px;background:var(--bg3);border-radius:5px"><span style="color:var(--text2)">Forest & timber loss</span><span style="color:#00e5a0;font-weight:700">${fmt(dmg.timber)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:5px 8px;background:var(--bg3);border-radius:5px"><span style="color:var(--text2)">Carbon credit loss</span><span style="color:#a78bfa;font-weight:700">${fmt(dmg.carbon)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:7px 8px;background:var(--red-bg);border-radius:5px;border:1px solid rgba(255,77,109,.2)"><span style="color:var(--text);font-weight:700">Total estimated damage</span><span style="color:#ff4d6d;font-weight:700">${fmt(dmg.total)}</span></div>
+      </div>
+    </div>
+    <div class="dp-sec"><div class="dp-lbl">Time-lapse — disturbance growth</div>
+      <div class="tl"><div class="tl-sc"><div class="tlz" id="tlz" style="left:38%;top:28%;width:8%;height:10%"></div><div style="position:absolute;bottom:5px;left:8px;font-size:9px;color:rgba(255,255,255,.3);font-family:monospace" id="tldl">09 Mar 2026</div></div>
+        <div class="tl-ct"><button class="tl-pb" onclick="htl()"><svg viewBox="0 0 24 24" id="tlico"><polygon points="5 3 19 12 5 21 5 3"/></svg></button><input type="range" min="0" max="4" step="1" value="0" class="tl-sl" id="tlsl" oninput="stlf(parseInt(this.value))"><span class="tl-dl" id="tlfl">1/5</span></div>
+      </div>
+    </div>
+    <div class="dp-sec"><div class="dp-lbl">Take action</div>
+      <div class="wf-btns">
+        <button class="wf wf-v" onclick="us('${a.id}','Verified')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Mark as verified</button>
+        <button class="wf wf-i" onclick="us('${a.id}','Under Investigation')"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Under investigation</button>
+        <button class="wf wf-f" onclick="us('${a.id}','False Positive')"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>False positive</button>
+        <button class="wf wf-r" onclick="genReport()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Generate report</button>
+      </div>
+    </div>`;
+  document.getElementById('dp').classList.remove('closed');tlf=0;
+}
+function cdp(){document.getElementById('dp').classList.add('closed');aid=null;ral();drawMap();if(tlt)clearInterval(tlt);tlp=false;}
+function stlf(f){tlf=f;const z=document.getElementById('tlz'),dl=document.getElementById('tldl'),fl=document.getElementById('tlfl'),sl=document.getElementById('tlsl');if(!z)return;z.style.width=TLS[f][0]+'%';z.style.height=TLS[f][1]+'%';if(dl)dl.textContent=TLD[f]+' 2026';if(fl)fl.textContent=(f+1)+'/5';if(sl)sl.value=f;}
+function htl(){tlp=!tlp;const ico=document.getElementById('tlico');if(ico)ico.innerHTML=tlp?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<polygon points="5 3 19 12 5 21 5 3"/>';if(tlp){tlt=setInterval(()=>{tlf=(tlf+1)%5;stlf(tlf);if(tlf===4){clearInterval(tlt);tlp=false;const i=document.getElementById('tlico');if(i)i.innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';}},900);}else clearInterval(tlt);}
+
+// ═══ ECONOMIC DAMAGE CALCULATOR ══════════════════════════════════
+function computeDamageForAlert(a){
+  const mKey={
+    'Iron ore':'iron','Coal':'coal','Bauxite':'bauxite',
+    'Limestone':'limestone','Sand':'sand','Granite':'granite'
+  }[a.mineral]||'coal';
+  const area=a.area;
+  const grade=62;const depth=3;const trees=400;const carbonPrice=800;
+  const vol=area*10000*depth*0.4;
+  const ore=(vol*MINERAL_DENSITY[mKey]*grade/100)*MINERAL_PRICE[mKey];
+  const timber=area*trees*2500;
+  const biomass=area*150*1000;
+  const carbon=(biomass/1000)*carbonPrice;
+  const water=area*50000;
+  const total=ore+timber+carbon+water;
+  return{ore,timber,carbon,water,total};
+}
+
+function computeDamage(){
+  const area=parseFloat(document.getElementById('ci_area').value)||1;
+  const mKey=document.getElementById('ci_mineral').value;
+  const grade=parseFloat(document.getElementById('ci_grade').value)||62;
+  const depth=parseFloat(document.getElementById('ci_depth').value)||3;
+  const trees=parseFloat(document.getElementById('ci_trees').value)||400;
+  const carbonPrice=parseFloat(document.getElementById('ci_carbon').value)||800;
+  const vol=area*10000*depth*0.4;
+  const ore=(vol*MINERAL_DENSITY[mKey]*grade/100)*MINERAL_PRICE[mKey];
+  const timber=area*trees*2500;
+  const biomass=area*150*1000;
+  const carbon=(biomass/1000)*carbonPrice;
+  const water=area*50000;
+  const total=ore+timber+carbon+water;
+  return{ore,timber,carbon,water,total};
+}
+
+function calcDamage(){
+  const d=computeDamage();
+  document.getElementById('ecoTotal').textContent=fmt(d.total);
+  document.getElementById('ecoOre').textContent=fmt(d.ore);
+  document.getElementById('ecoTimber').textContent=fmt(d.timber);
+  document.getElementById('ecoCarbon').textContent=fmt(d.carbon);
+  document.getElementById('ecoWater').textContent=fmt(d.water);
+  const cats=[
+    {name:'Illegal ore extraction',val:d.ore,basis:'Volume × density × grade × market price',color:'#ffb340'},
+    {name:'Timber & forest loss',val:d.timber,basis:'Trees/ha × avg timber value ₹2,500/tree',color:'#00e5a0'},
+    {name:'Carbon credit loss',val:d.carbon,basis:'Biomass × carbon fraction × ₹800/tonne CO₂',color:'#a78bfa'},
+    {name:'Water body damage',val:d.water,basis:'Groundwater contamination remediation cost',color:'#4d9eff'},
+    {name:'TOTAL DAMAGE',val:d.total,basis:'Sum of all categories',color:'#ff4d6d'},
+  ];
+  document.getElementById('breakdownBody').innerHTML=cats.map(c=>`
+    <tr>
+      <td style="font-weight:${c.name==='TOTAL DAMAGE'?'700':'400'};color:${c.name==='TOTAL DAMAGE'?'var(--text)':'var(--text2)'}">${c.name}</td>
+      <td style="font-size:11px;color:var(--text3)">${c.basis}</td>
+      <td class="mono" style="color:${c.color}">${fmt(c.val)}</td>
+      <td style="color:var(--text2);font-size:11.5px">${c.name==='TOTAL DAMAGE'?'100%':(c.val/d.total*100).toFixed(1)+'%'}</td>
+      <td class="gap-bar-cell">${c.name!=='TOTAL DAMAGE'?`<div class="dmg-bar-bg"><div class="dmg-bar-f" style="width:${(c.val/d.total*100).toFixed(0)}%;background:${c.color}"></div></div>`:'—'}</td>
+    </tr>`).join('');
+  drawDamageChart();
+}
+
+function renderZoneSelector(){
+  document.getElementById('zoneSel').innerHTML=D.map((a,i)=>`
+    <button class="zone-pill${i===0?' on':''}" onclick="selectZone(${i},this)">${a.name.split('—')[0].trim()}</button>`).join('');
+}
+function selectZone(i,btn){
+  const a=D[i];
+  document.getElementById('ci_area').value=a.area;
+  document.getElementById('ci_mineral').value={
+    'Iron ore':'iron','Coal':'coal','Bauxite':'bauxite',
+    'Limestone':'limestone','Sand':'sand','Granite':'granite'
+  }[a.mineral]||'coal';
+  document.querySelectorAll('.zone-pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  calcDamage();
+}
+
+function drawDamageChart(){
+  const canvas=document.getElementById('damageChart');if(!canvas)return;
+  const W=canvas.offsetWidth||600,H=240;canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,H);
+  const dmgs=D.map(a=>computeDamageForAlert(a));
+  const max=Math.max(...dmgs.map(d=>d.total))*1.15;
+  const pad={l:60,r:10,t:20,b:40};const iW=W-pad.l-pad.r;const iH=H-pad.t-pad.b;
+  const gc='rgba(255,255,255,.05)',tc='#4a556a';
+  for(let i=0;i<=4;i++){const y=pad.t+iH-(i/4)*iH;ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle=tc;ctx.font='9px system-ui';ctx.textAlign='right';ctx.fillText(fmt(max*i/4),pad.l-4,y+3);}
+  const bW=iW/D.length*0.55,gap=iW/D.length;
+  D.forEach((a,i)=>{
+    const d=dmgs[i];const x=pad.l+i*gap+(gap-bW)/2;
+    const sections=[
+      {val:d.water,col:'#4d9eff'},{val:d.carbon,col:'#a78bfa'},
+      {val:d.timber,col:'#00e5a0'},{val:d.ore,col:'#ffb340'},
+    ];
+    let curY=pad.t+iH;
+    sections.forEach(s=>{const sh=(s.val/max)*iH;curY-=sh;ctx.fillStyle=s.col;if(ctx.roundRect&&curY===pad.t+iH-(d.ore/max)*iH-(d.timber/max)*iH-(d.carbon/max)*iH-(d.water/max)*iH)ctx.beginPath();ctx.fillRect(x,curY,bW,sh);});
+    ctx.fillStyle=rc(a.risk);ctx.font='bold 9px system-ui';ctx.textAlign='center';
+    ctx.fillText(fmt(d.total).replace('₹',''),x+bW/2,pad.t+iH-(d.total/max)*iH-4);
+    ctx.fillStyle=tc;ctx.font='8.5px system-ui';ctx.fillText(a.name.split('—')[0].trim().replace('Zone ',''),x+bW/2,H-pad.b+12);
+  });
+}
+
+// ═══ ENFORCEMENT GAP ══════════════════════════════════════════════
+function renderGapTable(){
+  const gapColor={CRITICAL:'gb-critical',HIGH:'gb-high',MEDIUM:'gb-medium',LOW:'gb-low'};
+  const rate=d=>Math.round(d.firs/d.alerts*100);
+  document.getElementById('gapTableBody').innerHTML=GAP_DATA.map(d=>`
+    <tr>
+      <td style="font-weight:700">${d.district}</td>
+      <td style="color:var(--text2)">${d.state}</td>
+      <td style="color:var(--red);font-weight:700;font-family:monospace">${d.alerts}</td>
+      <td style="color:var(--amber);font-family:monospace">${d.firs}</td>
+      <td style="color:var(--blue);font-family:monospace">${d.visits}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="gap-bar-bg" style="width:80px"><div class="gap-bar-f" style="width:${rate(d)}%;background:${rate(d)<20?'#ff4d6d':rate(d)<40?'#ffb340':'#00e5a0'}"></div></div>
+          <span style="font-size:11px;font-weight:700;color:${rate(d)<20?'#ff4d6d':rate(d)<40?'#ffb340':'#00e5a0'}">${rate(d)}%</span>
+        </div>
+      </td>
+      <td style="color:${d.avgDays>12?'#ff4d6d':d.avgDays>7?'#ffb340':'#00e5a0'};font-weight:700;font-family:monospace">${d.avgDays}d</td>
+      <td><span class="gap-badge ${gapColor[d.gap]}">${d.gap}</span></td>
+      <td style="color:#a78bfa;font-weight:700;font-family:monospace">₹${d.damage}Cr</td>
+    </tr>`).join('');
+}
+
+function renderRecommendations(){
+  const recs=[
+    {priority:'P1',col:'#ff4d6d',pcol:'var(--red-bg)',text:'<b>Deploy dedicated enforcement teams to Bastar and Mayurbhanj</b> — both show CRITICAL gaps with &lt;15% FIR filing rates. Assign 2 additional mining officers per district immediately.'},
+    {priority:'P1',col:'#ff4d6d',pcol:'var(--red-bg)',text:'<b>Reduce field response time target from 11 days to 48 hours</b> for HIGH confidence alerts (score &gt;0.75). Pre-position rapid response teams in high-risk districts during dry season.'},
+    {priority:'P2',col:'#ffb340',pcol:'var(--amber-bg)',text:'<b>Mandatory FIR filing within 72 hours of verified satellite alert</b>. Current system allows discretionary non-filing. Automated escalation to State Mining Director if no FIR after 5 days.'},
+    {priority:'P2',col:'#ffb340',pcol:'var(--amber-bg)',text:'<b>Deploy drone verification for remote terrain zones</b> where road access &gt;15km. 42% of HIGH alerts are in such areas. Drone deployment reduces verification time from 14 days to 2 days.'},
+    {priority:'P3',col:'#4d9eff',pcol:'var(--blue-bg)',text:'<b>Cross-train forest department officers in satellite evidence interpretation</b>. 68% of officers currently cannot independently interpret NDVI change maps — this delays FIR filing.'},
+    {priority:'P3',col:'#4d9eff',pcol:'var(--blue-bg)',text:'<b>Integrate MineWatch alerts directly into state police Crime Record Bureau</b>. Currently alerts flow through mining dept only. Direct police integration enables parallel investigation tracks.'},
+  ];
+  document.getElementById('recList').innerHTML=recs.map(r=>`
+    <div class="rec-item">
+      <span class="rec-priority" style="background:${r.pcol};color:${r.col}">${r.priority}</span>
+      <div class="rec-text">${r.text}</div>
+    </div>`).join('');
+}
+
+// ═══ TABLE ════════════════════════════════════════════════════════
+function rt(data){
+  document.getElementById('tbody').innerHTML=data.map(a=>{
+    const dmg=computeDamageForAlert(a);
+    return`<tr onclick="sd2('${a.id}');sv('map',document.querySelectorAll('.nav-tab')[0])">
+      <td style="color:var(--text2);font-size:10.5px;font-family:monospace">${a.id}</td>
+      <td><div style="font-weight:700;font-size:12px">${a.name}</div><div style="font-size:10.5px;color:var(--text3)">${a.region}</div></td>
+      <td>${a.area} ha</td>
+      <td style="font-family:monospace;font-weight:700;color:${sc(a.score)}">${a.score.toFixed(2)}</td>
+      <td><span class="bdg b${a.risk.charAt(0).toLowerCase()}">${a.risk}</span></td>
+      <td style="color:var(--text2);font-size:11px">${a.date}</td>
+      <td style="color:#ffb340;font-size:11px">${a.mineral}</td>
+      <td style="color:#a78bfa;font-weight:700;font-size:11.5px">${fmt(dmg.total)}</td>
+      <td><select onchange="us('${a.id}',this.value);event.stopPropagation()" onclick="event.stopPropagation()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:10.5px;padding:3px 7px;border-radius:5px;font-family:inherit;cursor:pointer;outline:none">
+        <option${a.status==='New'?' selected':''}>New</option>
+        <option${a.status==='Verified'?' selected':''}>Verified</option>
+        <option${a.status==='Under Investigation'?' selected':''}>Under Investigation</option>
+        <option${a.status==='False Positive'?' selected':''}>False Positive</option>
+      </select></td>
+      <td><button onclick="event.stopPropagation();genReport()" class="tact-btn">Report</button></td>
+    </tr>`;}).join('');
+}
+function tf(f,btn){trf=f;document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');atf();}
+function atf(){
+  let data=[...D];
+  if(trf==='HIGH')data=data.filter(a=>a.risk==='HIGH');
+  else if(trf==='New')data=data.filter(a=>a.status==='New');
+  const sf=document.getElementById('sf2').value;if(sf)data=data.filter(a=>a.status===sf);
+  const pr=parseFloat(document.getElementById('pr').value);if(pr>0)data=data.filter(a=>a.score>=pr);
+  rt(data);
+}
+function st(col){SD[col]=!SD[col];D.sort((a,b)=>{const v=typeof a[col]==='number'?a[col]-b[col]:(a[col]||'').localeCompare(b[col]||'');return SD[col]?v:-v;});atf();}
+function exCSV(){
+  const hdr='ID,Name,Region,Area,Score,Risk,Date,Mineral,OreValue,TimberLoss,CarbonLoss,TotalDamage,Status\n';
+  const rows=D.map(a=>{const d=computeDamageForAlert(a);return`${a.id},"${a.name}",${a.region},${a.area},${a.score},${a.risk},${a.date},${a.mineral},${Math.round(d.ore)},${Math.round(d.timber)},${Math.round(d.carbon)},${Math.round(d.total)},${a.status}`;}).join('\n');
+  const b=new Blob([hdr+rows],{type:'text/csv'});const u=URL.createObjectURL(b);const el=document.createElement('a');el.href=u;el.download='minewatch_v3_alerts.csv';el.click();toast2('CSV with damage data exported');
+}
+function us(id,s){const a=D.find(x=>x.id===id);if(!a)return;a.status=s;ral();atf();if(aid===id)sd2(id);toast2(id+' → "'+s+'"');}
+function genReport(){sv('report',document.querySelectorAll('.nav-tab')[5]);toast2('Report with evidence package generated in 4.2s');}
+function dlPDF(){
+  const a=D[0];const d=computeDamageForAlert(a);
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>MineWatch Report IMR-2026-0041</title>
+  <style>body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:800px;margin:0 auto}h1{font-size:22px;margin-bottom:6px}h2{font-size:15px;color:#333;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px}td,th{border:1px solid #ddd;padding:7px 10px}th{background:#f5f5f5;font-weight:bold;text-align:left}.red{color:#cc2244}.green{color:#00856a}.amber{color:#996600}ol li{margin-bottom:6px;font-size:12.5px;line-height:1.6}@media print{button{display:none}}</style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px"><div><h1>MineWatch v3 — Incident Report</h1><div style="font-size:11px;color:#888">IMR-2026-0041 · ${new Date().toLocaleString()} · CONFIDENTIAL</div></div><div style="background:#ffeeee;border:1px solid #ffaaaa;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:bold;color:#cc2244">IMMEDIATE ACTION REQUIRED</div></div>
+  <h2>Detection summary</h2>
+  <table><tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Zone</td><td>${a.name}</td></tr><tr><td>Coordinates</td><td class="green">${a.lat}°N, ${a.lng}°E</td></tr>
+  <tr><td>Affected area</td><td>${a.area} hectares</td></tr><tr><td>Illegal mining score</td><td class="red">${a.score}/1.00 — HIGH CONFIDENCE</td></tr>
+  <tr><td>Detection date</td><td>${a.date}</td></tr><tr><td>Mineral type</td><td>${a.mineral}</td></tr>
+  <tr><td>Protected zone</td><td class="red">Yes — Simlipal Tiger Reserve Class A</td></tr>
+  <tr><td>Legal admissibility</td><td class="green">89% — Court ready</td></tr></table>
+  <h2>Economic damage estimate</h2>
+  <table><tr><th>Category</th><th>Estimated loss</th></tr>
+  <tr><td>Illegal ore extraction value</td><td class="red">${fmt(d.ore)}</td></tr>
+  <tr><td>Timber and forest loss</td><td class="amber">${fmt(d.timber)}</td></tr>
+  <tr><td>Carbon credit loss</td><td class="amber">${fmt(d.carbon)}</td></tr>
+  <tr><td>Water body damage</td><td class="amber">${fmt(d.water)}</td></tr>
+  <tr><td><b>TOTAL ESTIMATED DAMAGE</b></td><td class="red"><b>${fmt(d.total)}</b></td></tr></table>
+  <h2>Legal basis</h2>
+  <table><tr><th>Act</th><th>Section</th><th>Penalty</th></tr>
+  <tr><td>MMDR Act 1957</td><td>Section 21</td><td>5 years + 5× mineral value fine</td></tr>
+  <tr><td>Forest Conservation Act 1980</td><td>Section 2</td><td>Criminal offence — central approval required</td></tr>
+  <tr><td>Wildlife Protection Act 1972</td><td>Section 51</td><td>7 years imprisonment — Tiger Reserve buffer</td></tr></table>
+  <h2>Recommended actions</h2>
+  <ol><li>Dispatch field verification team within 48 hours</li><li>File FIR under MMDR Act Section 21 + IPC Section 379</li><li>Notify District Mining Officer, Mayurbhanj</li><li>Escalate to Odisha Forest Department (DFO, Simlipal)</li><li>Alert state police for arrest under cognizable offence</li><li>Initiate damage recovery proceedings under EPA 1986</li></ol>
+  <h2>Enforcement gap note</h2>
+  <p style="font-size:12.5px;color:#444;line-height:1.7">Mayurbhanj district has a <b>CRITICAL enforcement gap</b> — 8 alerts in 30 days, only 1 FIR filed (12.5% response rate). Average field response: 14 days. This case requires escalation to State Mining Director.</p>
+  <div style="margin-top:30px;border-top:1px solid #ddd;padding-top:16px;font-size:10px;color:#888">Generated by MineWatch v3 Satellite Illegal Mining Detection System · ${new Date().toLocaleString()}</div>
+  <button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#00856a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Print / Save as PDF</button>
+  </body></html>`);win.document.close();toast2('PDF opened — click Print to save');
+}
+function dlJSON(){const a=D[0];const d=computeDamageForAlert(a);const b=new Blob([JSON.stringify({report:'IMR-2026-0041',alert:a,damage:d,legalActs:['MMDR 1957 Sec 21','Forest Conservation Act 1980','Wildlife Protection Act 1972']},null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const el=document.createElement('a');el.href=u;el.download='IMR-2026-0041.json';el.click();toast2('JSON exported');}
+function dlGeoJSON(){const gj={type:'FeatureCollection',features:D.map(a=>({type:'Feature',geometry:{type:'Point',coordinates:[a.lng,a.lat]},properties:{...a,...computeDamageForAlert(a)}}))};const b=new Blob([JSON.stringify(gj,null,2)],{type:'application/geo+json'});const u=URL.createObjectURL(b);const el=document.createElement('a');el.href=u;el.download='minewatch_alerts.geojson';el.click();toast2('GeoJSON exported');}
+function cpc(){try{navigator.clipboard.writeText('21.4382°N, 86.1294°E').then(()=>toast2('Coordinates copied'));}catch(e){toast2('21.4382°N, 86.1294°E');}}
+function dlEvidence(type){toast2(`Evidence package (${type}) download initiated`);}
+function shareEmail(){const a=D[0];const d=computeDamageForAlert(a);const sub=encodeURIComponent(`URGENT: Illegal Mining — ${a.name} — Damage: ${fmt(d.total)}`);const body=encodeURIComponent(`Dear Sir/Madam,\n\nMineWatch has detected illegal mining with estimated damage of ${fmt(d.total)}.\n\nZone: ${a.name}\nCoords: ${a.lat}°N, ${a.lng}°E\nArea: ${a.area} ha\nMineral: ${a.mineral}\nScore: ${a.score}/1.00 (HIGH)\nEvidence: 89% court admissible\n\nReport ID: IMR-2026-0041\nMineWatch v3`);window.location.href=`mailto:dmomayurbhanj@odisha.gov.in?subject=${sub}&body=${body}`;toast2('Email opened with damage summary');}
+function openM(){document.getElementById('mov').classList.add('open');}
+function closeM(){document.getElementById('mov').classList.remove('open');}
+function confD(){closeM();toast2('Dispatch sent — logged in chain of custody');}
+let tT;
+function toast2(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ═══ VIEW SWITCH ══════════════════════════════════════════════════
+function sv(v,btn){
+  document.getElementById('vm').style.display='none';
+  document.querySelectorAll('.pv').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  if(v==='map'){document.getElementById('vm').style.display='flex';setTimeout(()=>drawMap(),60);}
+  else document.getElementById('v'+v).classList.add('on');
+  if(btn)btn.classList.add('active');
+  if(v==='metrics')setTimeout(initC,100);
+  if(v==='table')atf();
+  if(v==='damage'){renderZoneSelector();setTimeout(calcDamage,50);}
+  if(v==='enforcement'){renderGapTable();renderRecommendations();setTimeout(initGapCharts,80);}
+}
+
+// ═══ CHARTS ═══════════════════════════════════════════════════════
+function drawBarChart(id,labels,values,colors,H=200){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  const W=canvas.offsetWidth||400;canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,H);
+  const pad={l:36,r:10,t:20,b:30};const iW=W-pad.l-pad.r;const iH=H-pad.t-pad.b;
+  const max=Math.max(...values)*1.2;const gc='rgba(255,255,255,.05)',tc='#4a556a';
+  for(let i=0;i<=4;i++){const y=pad.t+iH-(i/4)*iH;ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle=tc;ctx.font='9px system-ui';ctx.textAlign='right';ctx.fillText(Math.round(max*i/4),pad.l-4,y+3);}
+  const bW=iW/values.length*.6,gap=iW/values.length;
+  values.forEach((v,i)=>{const x=pad.l+i*gap+(gap-bW)/2;const bH=(v/max)*iH;const y=pad.t+iH-bH;ctx.fillStyle=colors[i]||'#00e5a0';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,bW,bH,4);else ctx.rect(x,y,bW,bH);ctx.fill();ctx.fillStyle='#e8eaf0';ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.fillText(v,x+bW/2,y-4);ctx.fillStyle=tc;ctx.font='8.5px system-ui';ctx.fillText(labels[i],x+bW/2,H-pad.b+12);});
+}
+function drawDonut(id,values,colors){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  const S=Math.min(canvas.offsetWidth||160,canvas.offsetHeight||160);canvas.width=S;canvas.height=S;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,S,S);
+  const cx=S/2,cy=S/2,R=S*.42,r=S*.26;const total=values.reduce((a,b)=>a+b,0);
+  let angle=-Math.PI/2;values.forEach((v,i)=>{const sl=(v/total)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,angle,angle+sl);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();angle+=sl;});
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#141928';ctx.fill();
+  ctx.fillStyle='#e8eaf0';ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillText('7',cx,cy+5);
+}
+function drawLine(id,labels,values,color){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  const W=canvas.offsetWidth||400;const H=canvas.offsetHeight||200;canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,H);
+  const pad={l:38,r:10,t:15,b:28};const iW=W-pad.l-pad.r;const iH=H-pad.t-pad.b;
+  const min=Math.min(...values)*.9,max=Math.max(...values)*1.1;
+  const px=i=>pad.l+i*(iW/(labels.length-1));const py=v=>pad.t+iH-((v-min)/(max-min))*iH;
+  const gc='rgba(255,255,255,.05)',tc='#4a556a';
+  for(let i=0;i<=4;i++){const y=pad.t+(i/4)*iH;ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle=tc;ctx.font='9px system-ui';ctx.textAlign='right';ctx.fillText((max-(max-min)*i/4).toFixed(0),pad.l-3,y+3);}
+  ctx.beginPath();ctx.moveTo(px(0),py(values[0]));values.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
+  ctx.lineTo(px(values.length-1),pad.t+iH);ctx.lineTo(px(0),pad.t+iH);ctx.closePath();ctx.fillStyle=color+'18';ctx.fill();
+  ctx.beginPath();ctx.moveTo(px(0),py(values[0]));values.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
+  ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.stroke();
+  values.forEach((v,i)=>{ctx.beginPath();ctx.arc(px(i),py(v),4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+  labels.forEach((l,i)=>{ctx.fillStyle=tc;ctx.font='8.5px system-ui';ctx.textAlign='center';ctx.fillText(l,px(i),H-pad.b+14);});
+}
+function initGapCharts(){
+  drawBarChart('gapChart1',GAP_DATA.map(d=>d.district.substring(0,7)),[...GAP_DATA.map(d=>d.alerts),...GAP_DATA.map(d=>d.firs)].slice(0,8),GAP_DATA.map(d=>d.gap==='CRITICAL'?'#ff4d6d':d.gap==='HIGH'?'#ffb340':'#00e5a0'),220);
+  drawLine('gapChart2',['Nov','Dec','Jan','Feb','Mar','Apr'],[18,14,11,14,9,11],'#4d9eff');
+}
+let cOk=false;
+function initC(){
+  if(cOk)return;cOk=true;
+  setTimeout(()=>{
+    drawBarChart('ch1',['Jan','Feb','Mar','Apr'],[8,11,14,17],['rgba(255,77,109,.55)','rgba(255,77,109,.7)','rgba(255,77,109,.85)','#ff4d6d']);
+    drawDonut('ch2',[3,2,2],['#ff4d6d','#ffb340','#00e5a0']);
+    drawBarChart('ch3',GAP_DATA.map(d=>d.district.substring(0,6)),GAP_DATA.map(d=>d.alerts),GAP_DATA.map(d=>d.gap==='CRITICAL'?'#ff4d6d':d.gap==='HIGH'?'#ffb340':'#00e5a0'),200);
+  },60);
+}
+
+// ═══ INIT ══════════════════════════════════════════════════════════
+document.getElementById('vm').style.display='flex';
+ral();atf();
+setTimeout(()=>{drawMap();initMapEvents();},120);
+</script>
+</body>
+</html>
